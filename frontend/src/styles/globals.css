@@ -1,10 +1,16 @@
 :root {
-  --bg-color: #0f0f0f;
-  --surface-color: #1a1a1a;
-  --border-color: #333;
-  --text-primary: #e8e8e8;
-  --text-secondary: #888;
-  --accent-color: #4a9eff;
+  --bg-color: #121016;
+  --bg-gradient: linear-gradient(145deg, #121016 0%, #1a1528 50%, #151320 100%);
+  --surface-color: rgba(255, 255, 255, 0.06);
+  --surface-hover: rgba(255, 255, 255, 0.10);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --text-primary: #f0eef5;
+  --text-secondary: rgba(255, 255, 255, 0.5);
+  --accent-color: #a855f7;
+  --accent-glow: rgba(168, 85, 247, 0.3);
+  --accent-secondary: #ec4899;
+  --beat-active: #22d3ee;
+  --beat-past: rgba(255, 255, 255, 0.12);
 }
 
 *,
@@ -17,75 +23,94 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: var(--bg-color);
+  background: var(--bg-gradient);
+  background-attachment: fixed;
   color: var(--text-primary);
   line-height: 1.5;
+  min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
 
 .app {
-  max-width: 800px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 0 1.5rem 2rem;
 }
 
-.app__title {
-  font-size: 1.75rem;
+/* Top bar: title + search inline */
+.top-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg-color);
+  background: linear-gradient(180deg, #121016 80%, transparent 100%);
+  backdrop-filter: blur(12px);
+}
+
+.top-bar__title {
+  font-size: 1.25rem;
   font-weight: 700;
-  margin-bottom: 0.25rem;
-}
-
-.app__subtitle {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  margin-bottom: 2rem;
+  white-space: nowrap;
+  background: linear-gradient(135deg, var(--accent-color), var(--accent-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .url-form {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  flex: 1;
+  max-width: 500px;
 }
 
 .url-form__input {
   flex: 1;
-  padding: 0.65rem 1rem;
+  padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
   border: 1px solid var(--border-color);
   background: var(--surface-color);
   color: var(--text-primary);
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   outline: none;
   transition: border-color 0.15s;
 }
 
 .url-form__input:focus {
   border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
 .url-form__btn {
-  padding: 0.65rem 1.5rem;
+  padding: 0.5rem 1.25rem;
   border-radius: 0.5rem;
   border: none;
   background: var(--accent-color);
   color: #fff;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, transform 0.1s;
 }
 
 .url-form__btn:hover {
   opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 .url-form__btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
+/* Processing status */
 .processing-status {
-  padding: 1.5rem;
+  padding: 1.25rem;
   background: var(--surface-color);
   border-radius: 0.75rem;
   border: 1px solid var(--border-color);
@@ -93,47 +118,53 @@ body {
 }
 
 .processing-status__text {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--text-secondary);
   margin-bottom: 0.75rem;
 }
 
 .processing-status__bar {
-  height: 6px;
-  background: var(--bg-color);
-  border-radius: 3px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
   overflow: hidden;
 }
 
 .processing-status__fill {
   height: 100%;
-  background: var(--accent-color);
-  border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent-color), var(--accent-secondary));
+  border-radius: 2px;
   transition: width 0.3s ease-out;
 }
 
 .error-message {
   padding: 1rem;
-  background: rgba(255, 107, 107, 0.1);
-  border: 1px solid rgba(255, 107, 107, 0.3);
+  background: rgba(255, 107, 107, 0.08);
+  border: 1px solid rgba(255, 107, 107, 0.2);
   border-radius: 0.5rem;
   color: #ff6b6b;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   margin-bottom: 1.5rem;
 }
 
-.song-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-}
-
-.song-meta {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
+/* Song info — compact row */
+.song-info {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
   margin-bottom: 1rem;
 }
 
+.song-info__title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.song-info__meta {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
 .panels {
-  margin-top: 1rem;
+  margin-top: 0.5rem;
 }

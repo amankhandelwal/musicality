@@ -5,9 +5,7 @@ export type JobStatus =
   | "downloading"
   | "detecting_beats"
   | "separating_stems"
-  | "detecting_sections"
   | "analyzing_instruments"
-  | "mapping_sections"
   | "complete"
   | "failed";
 
@@ -20,13 +18,6 @@ export interface Bar {
   start: number;
   end: number;
   bar_num: number;
-}
-
-export interface Section {
-  start: number;
-  end: number;
-  label: string;
-  latin_label: string;
 }
 
 export interface InstrumentBeat {
@@ -58,7 +49,6 @@ export interface AnalysisResult {
   tempo: number;
   beats: Beat[];
   bars: Bar[];
-  sections: Section[];
   instrument_grid: InstrumentGrid;
 }
 

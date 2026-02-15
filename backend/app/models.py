@@ -15,9 +15,7 @@ class JobStatus(str, Enum):
     DOWNLOADING = "downloading"
     DETECTING_BEATS = "detecting_beats"
     SEPARATING_STEMS = "separating_stems"
-    DETECTING_SECTIONS = "detecting_sections"
     ANALYZING_INSTRUMENTS = "analyzing_instruments"
-    MAPPING_SECTIONS = "mapping_sections"
     COMPLETE = "complete"
     FAILED = "failed"
 
@@ -35,13 +33,6 @@ class Bar(BaseModel):
     start: float
     end: float
     bar_num: int
-
-
-class Section(BaseModel):
-    start: float
-    end: float
-    label: str
-    latin_label: str
 
 
 class InstrumentBeat(BaseModel):
@@ -73,7 +64,6 @@ class AnalysisResult(BaseModel):
     tempo: float
     beats: list[Beat]
     bars: list[Bar]
-    sections: list[Section]
     instrument_grid: InstrumentGrid
 
 

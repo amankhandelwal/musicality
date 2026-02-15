@@ -16,13 +16,10 @@ from app.models import (
     InstrumentGrid,
     JobStatus,
     Metadata,
-    Section,
 )
 from app.services.beat_instrument_analyzer import analyze_instruments
 from app.services.beat_tracker import detect_beats
 from app.services.downloader import download_audio
-from app.services.latin_section_mapper import map_sections
-from app.services.section_analyzer import detect_sections
 from app.services.source_separator import separate_stems
 
 logger = logging.getLogger(__name__)
@@ -63,13 +60,12 @@ def run_pipeline(job_id: str) -> None:
         job.audio_path = audio_path
         genre = guess_genre(title)
 
-        # Stages 2-4: Beat detection, source separation, section detection (parallel)
+        # Stages 2-3: Beat detection + source separation (parallel)
         job_store.update_status(job_id, JobStatus.SEPARATING_STEMS, 0.15)
 
-        with ThreadPoolExecutor(max_workers=3) as pool:
+        with ThreadPoolExecutor(max_workers=2) as pool:
             beat_future = pool.submit(detect_beats, audio_path)
             stem_future = pool.submit(separate_stems, audio_path)
-            section_future = pool.submit(detect_sections, audio_path)
 
             beats_raw, bars_raw, tempo = beat_future.result()
             try:
@@ -78,13 +74,8 @@ def run_pipeline(job_id: str) -> None:
             except Exception as e:
                 logger.warning(f"Source separation failed, continuing without stems: {e}")
                 stems_dir = None
-            sections_raw = section_future.result()
 
-        # Stage 5: Latin section mapping
-        job_store.update_status(job_id, JobStatus.MAPPING_SECTIONS, 0.65)
-        sections_mapped = map_sections(sections_raw, genre, stems_dir)
-
-        # Stage 6: Beat-by-beat instrument analysis
+        # Stage 4: Beat-by-beat instrument analysis
         job_store.update_status(job_id, JobStatus.ANALYZING_INSTRUMENTS, 0.75)
         grid_raw = analyze_instruments(
             genre.value, bars_raw, beats_raw, stems_dir, tempo
@@ -109,7 +100,6 @@ def run_pipeline(job_id: str) -> None:
             tempo=tempo,
             beats=[Beat(**b) for b in beats_raw],
             bars=[Bar(**b) for b in bars_raw],
-            sections=[Section(**s) for s in sections_mapped],
             instrument_grid=instrument_grid,
         )
 

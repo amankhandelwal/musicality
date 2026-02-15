@@ -1,19 +1,16 @@
 import { useMemo } from "react";
-import type { Beat, Bar, Section } from "../types/analysis";
+import type { Beat, Bar } from "../types/analysis";
 
 interface BeatSyncState {
   currentBeat: Beat | null;
   currentBeatNum: number;
   currentBarNum: number;
   currentSubdivision: number;
-  currentSection: Section | null;
-  currentSectionIdx: number;
 }
 
 export function useBeatSync(
   beats: Beat[],
   bars: Bar[],
-  sections: Section[],
   currentTime: number
 ): BeatSyncState {
   const currentBeatIdx = useMemo(() => {
@@ -52,25 +49,11 @@ export function useBeatSync(
     return Math.min(onBeatSubdiv, 15);
   }, [beats, currentBeatIdx, currentBeatNum, currentTime]);
 
-  const currentSectionIdx = useMemo(() => {
-    for (let i = 0; i < sections.length; i++) {
-      if (currentTime >= sections[i].start && currentTime < sections[i].end) {
-        return i;
-      }
-    }
-    return -1;
-  }, [sections, currentTime]);
-
-  const currentSection =
-    currentSectionIdx >= 0 ? sections[currentSectionIdx] : null;
-
   return {
     currentBeat,
     currentBeatNum,
     currentBarNum,
     currentSubdivision,
-    currentSection,
-    currentSectionIdx,
   };
 }
 

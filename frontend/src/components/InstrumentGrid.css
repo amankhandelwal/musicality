@@ -5,14 +5,6 @@
   border: 1px solid var(--border-color);
 }
 
-.instrument-grid__title {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin: 0 0 0.75rem;
-}
-
 .instrument-grid__empty {
   color: var(--text-secondary);
   font-size: 0.85rem;
@@ -21,65 +13,127 @@
 .instrument-grid__table {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
 .instrument-grid__row {
   display: grid;
-  grid-template-columns: 80px repeat(16, 1fr);
   gap: 2px;
   align-items: center;
 }
 
 .instrument-grid__header {
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .instrument-grid__label {
-  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-right: 0.5rem;
+  padding-right: 0.25rem;
+}
+
+.instrument-grid__instrument-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.instrument-grid__pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.instrument-grid__pin:hover {
+  color: var(--accent-color);
+}
+
+.instrument-grid__pin--active {
+  color: var(--accent-color);
+}
+
+.instrument-grid__divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 4px 0;
 }
 
 .instrument-grid__beat-header {
   text-align: center;
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--text-secondary);
-  padding: 0.1rem 0;
+  padding: 0.15rem 0;
+  border-radius: 3px;
 }
 
 .instrument-grid__beat-header--and {
   font-size: 0.55rem;
   font-weight: 400;
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 .instrument-grid__beat-header--active {
-  color: var(--accent-color);
+  color: var(--beat-active);
   opacity: 1;
+  background: rgba(34, 211, 238, 0.08);
 }
 
+/* Cells */
 .instrument-grid__cell {
-  aspect-ratio: 1;
-  max-height: 22px;
-  border-radius: 3px;
-  background: var(--bg-color);
+  min-height: 28px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
   transition: background 0.08s, box-shadow 0.08s;
 }
 
+/* Active cells — instrument group colors */
+.instrument-grid__cell--active.instrument-grid__cell--perc {
+  background: #f59e0b; /* warm amber for percussion */
+}
+
+.instrument-grid__cell--active.instrument-grid__cell--melodic {
+  background: var(--accent-color); /* purple for melodic */
+}
+
+/* Fallback if neither group class applies */
 .instrument-grid__cell--active {
   background: var(--accent-color);
 }
 
+/* Current subdivision column — playhead */
 .instrument-grid__cell--current {
-  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.3);
+  background: rgba(34, 211, 238, 0.06);
 }
 
 .instrument-grid__cell--active.instrument-grid__cell--current {
-  background: #6bb5ff;
-  box-shadow: 0 0 8px rgba(74, 158, 255, 0.6);
+  background: var(--beat-active);
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+}
+
+.instrument-grid__cell--active.instrument-grid__cell--current.instrument-grid__cell--perc {
+  background: var(--beat-active);
+}
+
+.instrument-grid__cell--active.instrument-grid__cell--current.instrument-grid__cell--melodic {
+  background: var(--beat-active);
+}
+
+/* Past subdivisions — dim active cells */
+.instrument-grid__cell--active.instrument-grid__cell--past {
+  opacity: 0.35 !important;
 }

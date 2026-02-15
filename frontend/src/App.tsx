@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { useAnalysis } from "./hooks/useAnalysis";
 import { useAudioPlayer } from "./hooks/useAudioPlayer";
 import { useBeatSync } from "./hooks/useBeatSync";
-import { BeatCounter } from "./components/BeatCounter";
-import { SectionTimeline } from "./components/SectionTimeline";
 import { PlayerControls } from "./components/PlayerControls";
 import { InstrumentGrid } from "./components/InstrumentGrid";
 import "./styles/globals.css";
@@ -13,9 +11,7 @@ const STATUS_LABELS: Record<string, string> = {
   downloading: "Downloading audio...",
   detecting_beats: "Detecting beats...",
   separating_stems: "Separating instruments...",
-  detecting_sections: "Detecting sections...",
   analyzing_instruments: "Analyzing instruments...",
-  mapping_sections: "Mapping dance sections...",
 };
 
 function App() {
@@ -25,14 +21,11 @@ function App() {
 
   const beats = analysis.result?.beats ?? [];
   const bars = analysis.result?.bars ?? [];
-  const sections = analysis.result?.sections ?? [];
   const {
     currentBeatNum,
     currentBarNum,
     currentSubdivision,
-    currentSection,
-    currentSectionIdx,
-  } = useBeatSync(beats, bars, sections, player.currentTime);
+  } = useBeatSync(beats, bars, player.currentTime);
 
   useEffect(() => {
     if (analysis.audioUrl && analysis.result) {
@@ -49,28 +42,26 @@ function App() {
 
   return (
     <div className="app">
-      <h1 className="app__title">Musicality</h1>
-      <p className="app__subtitle">
-        Visualize salsa &amp; bachata music structure for better dancing
-      </p>
-
-      <form className="url-form" onSubmit={handleSubmit}>
-        <input
-          className="url-form__input"
-          type="text"
-          placeholder="Paste a YouTube URL..."
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          disabled={analysis.isLoading}
-        />
-        <button
-          className="url-form__btn"
-          type="submit"
-          disabled={analysis.isLoading || !url.trim()}
-        >
-          {analysis.isLoading ? "Analyzing..." : "Analyze"}
-        </button>
-      </form>
+      <div className="top-bar">
+        <span className="top-bar__title">Musicality</span>
+        <form className="url-form" onSubmit={handleSubmit}>
+          <input
+            className="url-form__input"
+            type="text"
+            placeholder="Paste a YouTube URL..."
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            disabled={analysis.isLoading}
+          />
+          <button
+            className="url-form__btn"
+            type="submit"
+            disabled={analysis.isLoading || !url.trim()}
+          >
+            {analysis.isLoading ? "Analyzing..." : "Analyze"}
+          </button>
+        </form>
+      </div>
 
       {analysis.isLoading && analysis.status && (
         <div className="processing-status">
@@ -92,23 +83,13 @@ function App() {
 
       {analysis.result && (
         <>
-          <div className="song-title">{analysis.result.metadata.title}</div>
-          <div className="song-meta">
-            {Math.round(analysis.result.tempo)} BPM &middot;{" "}
-            {analysis.result.metadata.genre_hint}
+          <div className="song-info">
+            <span className="song-info__title">{analysis.result.metadata.title}</span>
+            <span className="song-info__meta">
+              {Math.round(analysis.result.tempo)} BPM &middot;{" "}
+              {analysis.result.metadata.genre_hint}
+            </span>
           </div>
-
-          <BeatCounter
-            currentBeatNum={currentBeatNum}
-            latinLabel={currentSection?.latin_label ?? null}
-          />
-
-          <SectionTimeline
-            sections={sections}
-            duration={player.duration}
-            currentTime={player.currentTime}
-            onSeek={player.seek}
-          />
 
           <PlayerControls
             isPlaying={player.isPlaying}
@@ -125,6 +106,7 @@ function App() {
               grid={analysis.result.instrument_grid}
               currentBarNum={currentBarNum}
               currentSubdivision={currentSubdivision}
+              currentBeatNum={currentBeatNum}
             />
           </div>
         </>
