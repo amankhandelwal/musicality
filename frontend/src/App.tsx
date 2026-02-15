@@ -40,54 +40,69 @@ function App() {
     }
   };
 
+  const hasResult = !!analysis.result;
+  const isLanding = !hasResult;
+
+  const searchForm = (
+    <form className="url-form" onSubmit={handleSubmit}>
+      <input
+        className="url-form__input"
+        type="text"
+        placeholder="Paste a YouTube URL..."
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        disabled={analysis.isLoading}
+      />
+      <button
+        className="url-form__btn"
+        type="submit"
+        disabled={analysis.isLoading || !url.trim()}
+      >
+        {analysis.isLoading ? "Analyzing..." : "Analyze"}
+      </button>
+    </form>
+  );
+
   return (
-    <div className="app">
-      <div className="top-bar">
-        <span className="top-bar__title">Musicality</span>
-        <form className="url-form" onSubmit={handleSubmit}>
-          <input
-            className="url-form__input"
-            type="text"
-            placeholder="Paste a YouTube URL..."
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            disabled={analysis.isLoading}
-          />
-          <button
-            className="url-form__btn"
-            type="submit"
-            disabled={analysis.isLoading || !url.trim()}
-          >
-            {analysis.isLoading ? "Analyzing..." : "Analyze"}
-          </button>
-        </form>
-      </div>
+    <div className={`app ${hasResult ? "app--results" : ""}`}>
+      {isLanding ? (
+        <div className="landing">
+          <h1 className="landing__title">Musicality</h1>
+          <p className="landing__subtitle">
+            Visualize salsa &amp; bachata music structure
+          </p>
+          {searchForm}
 
-      {analysis.isLoading && analysis.status && (
-        <div className="processing-status">
-          <div className="processing-status__text">
-            {STATUS_LABELS[analysis.status] || analysis.status}
-          </div>
-          <div className="processing-status__bar">
-            <div
-              className="processing-status__fill"
-              style={{ width: `${analysis.progress * 100}%` }}
-            />
-          </div>
+          {analysis.isLoading && analysis.status && (
+            <div className="processing-status">
+              <div className="processing-status__text">
+                {STATUS_LABELS[analysis.status] || analysis.status}
+              </div>
+              <div className="processing-status__bar">
+                <div
+                  className="processing-status__fill"
+                  style={{ width: `${analysis.progress * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {analysis.error && (
+            <div className="error-message">{analysis.error}</div>
+          )}
         </div>
-      )}
-
-      {analysis.error && (
-        <div className="error-message">{analysis.error}</div>
-      )}
-
-      {analysis.result && (
+      ) : (
         <>
+          <div className="top-bar">
+            <span className="top-bar__title">Musicality</span>
+            {searchForm}
+          </div>
+
           <div className="song-info">
-            <span className="song-info__title">{analysis.result.metadata.title}</span>
+            <span className="song-info__title">{analysis.result!.metadata.title}</span>
             <span className="song-info__meta">
-              {Math.round(analysis.result.tempo)} BPM &middot;{" "}
-              {analysis.result.metadata.genre_hint}
+              {Math.round(analysis.result!.tempo)} BPM &middot;{" "}
+              {analysis.result!.metadata.genre_hint}
             </span>
           </div>
 
@@ -103,7 +118,7 @@ function App() {
 
           <div className="panels">
             <InstrumentGrid
-              grid={analysis.result.instrument_grid}
+              grid={analysis.result!.instrument_grid}
               currentBarNum={currentBarNum}
               currentSubdivision={currentSubdivision}
               currentBeatNum={currentBeatNum}
