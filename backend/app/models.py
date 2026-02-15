@@ -35,9 +35,15 @@ class Bar(BaseModel):
     bar_num: int
 
 
+class BeatCell(BaseModel):
+    active: bool
+    velocity: float = 0.0  # 0.0-1.0, normalized onset strength
+    pitch: float = 0.5     # 0.0-1.0, spectral centroid normalized within freq band
+
+
 class InstrumentBeat(BaseModel):
     instrument: str
-    beats: list[bool]
+    beats: list[bool] | list[BeatCell]
     confidence: float
 
 

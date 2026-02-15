@@ -213,10 +213,15 @@
 
 /* Cells */
 .instrument-grid__cell {
-  min-height: 28px;
+  min-height: 48px;
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.03);
-  transition: background 0.08s, box-shadow 0.08s;
+  transform-origin: center bottom;
+  transition: background 0.08s, box-shadow 0.08s, transform 0.1s, filter 0.1s;
+}
+
+.instrument-grid__cell--active {
+  will-change: transform, filter;
 }
 
 /* Active cells — instrument group colors */
@@ -253,5 +258,6 @@
 
 /* Past subdivisions — dim active cells */
 .instrument-grid__cell--active.instrument-grid__cell--past {
-  opacity: 0.35 !important;
+  opacity: 0.2 !important;
+  filter: brightness(0.5) !important;
 }

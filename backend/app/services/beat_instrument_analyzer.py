@@ -22,6 +22,7 @@ ONSET_WINDOW_SEC = 0.030  # 30ms window for sub-stem energy attribution
 ENERGY_RATIO_THRESHOLD = 0.3  # min energy ratio to attribute onset to sub-stem
 PRESENCE_THRESHOLD = 0.005  # below this, stem has negligible energy
 SNAP_TOLERANCE = 0.5  # max fraction of subdivision duration to snap
+SPECTRAL_WINDOW_SEC = 0.050  # 50ms window for spectral centroid computation
 
 
 def analyze_instruments(
@@ -48,9 +49,10 @@ def analyze_instruments(
     if not stems_audio:
         return _empty_result(genre, templates, cycles)
 
-    # Precompute onset times for each stem (whole song, once)
+    # Precompute onset times and envelopes for each stem (whole song, once)
     # Detecting on the full envelope gives librosa proper adaptive thresholding
     stem_onset_times: dict[str, np.ndarray] = {}
+    stem_onset_envelopes: dict[str, np.ndarray] = {}
     hop = 512
     for stem_name, (y, sr) in stems_audio.items():
         env = librosa.onset.onset_strength(y=y, sr=sr, hop_length=hop)
@@ -62,6 +64,7 @@ def analyze_instruments(
         )
         times = librosa.frames_to_time(onset_frames, sr=sr, hop_length=hop)
         stem_onset_times[stem_name] = times
+        stem_onset_envelopes[stem_name] = env
         logger.info("Stem '%s': %d onsets detected across full song", stem_name, len(times))
 
     # Precompute bandpass-filtered stems for each unique (stem, freq_band) pair
@@ -96,7 +99,9 @@ def analyze_instruments(
             stem_templates,
             stems_audio,
             stem_onset_times,
+            stem_onset_envelopes,
             bandpass_cache,
+            hop,
         )
 
         result_bars.append({
@@ -180,7 +185,9 @@ def _analyze_cycle_onsets(
     stem_templates: dict[str, list[InstrumentTemplate]],
     stems_audio: dict[str, tuple[np.ndarray, int]],
     stem_onset_times: dict[str, np.ndarray],
+    stem_onset_envelopes: dict[str, np.ndarray],
     bandpass_cache: dict[tuple[str, str], np.ndarray],
+    hop: int,
 ) -> list[dict]:
     """Analyze all instruments for a single cycle using onset detection."""
     # Filter precomputed onset times to this cycle's time range
@@ -200,18 +207,19 @@ def _analyze_cycle_onsets(
         stem_bands = {t.freq_band for t in stem_templates.get(template.stem, [])}
         is_single_band = len(stem_bands) <= 1
 
-        pattern = [False] * NUM_SUBDIVISIONS
-        _, sr = stems_audio[template.stem]
+        pattern = [{"active": False, "velocity": 0.0, "pitch": 0.5}
+                    for _ in range(NUM_SUBDIVISIONS)]
+        y, sr = stems_audio[template.stem]
+        onset_env = stem_onset_envelopes.get(template.stem)
 
         for onset_time in onsets:
             subdiv_idx = _snap_to_subdivision(onset_time, subdiv_times, cycle_end)
             if subdiv_idx < 0 or subdiv_idx >= NUM_SUBDIVISIONS:
                 continue
 
+            activated = False
             if is_single_band:
-                # All instruments on this stem share the same band — can't
-                # distinguish, so attribute onset to all of them
-                pattern[subdiv_idx] = True
+                activated = True
             else:
                 bp_key = (template.stem, template.freq_band)
                 bp_signal = bandpass_cache.get(bp_key)
@@ -222,13 +230,28 @@ def _analyze_cycle_onsets(
                     bp_signal, sr, onset_time, template.freq_band,
                     template.stem, bandpass_cache, stem_templates,
                 ):
-                    pattern[subdiv_idx] = True
+                    activated = True
 
-        if any(pattern):
+            if activated:
+                velocity = _compute_onset_velocity(onset_time, onset_env, sr, hop)
+                bp_key = (template.stem, template.freq_band)
+                bp_signal = bandpass_cache.get(bp_key)
+                pitch = _compute_spectral_pitch(
+                    bp_signal, sr, onset_time, template.freq_band
+                ) if bp_signal is not None else 0.5
+                pattern[subdiv_idx] = {
+                    "active": True,
+                    "velocity": velocity,
+                    "pitch": pitch,
+                }
+
+        if any(cell["active"] for cell in pattern):
+            active_velocities = [cell["velocity"] for cell in pattern if cell["active"]]
+            confidence = sum(active_velocities) / len(active_velocities) if active_velocities else 0.7
             instruments.append({
                 "instrument": template.name,
                 "beats": pattern,
-                "confidence": 0.7,
+                "confidence": round(confidence, 3),
             })
 
     if cycle_num == 0:
@@ -240,6 +263,61 @@ def _analyze_cycle_onsets(
         )
 
     return instruments
+
+
+def _compute_onset_velocity(
+    onset_time: float,
+    onset_env: np.ndarray | None,
+    sr: int,
+    hop: int,
+) -> float:
+    """Look up onset strength and return normalized 0.0-1.0 velocity."""
+    if onset_env is None or len(onset_env) == 0:
+        return 0.7
+
+    frame = int(onset_time * sr / hop)
+    frame = max(0, min(frame, len(onset_env) - 1))
+    strength = onset_env[frame]
+
+    max_val = onset_env.max()
+    if max_val <= 0:
+        return 0.7
+
+    normalized = strength / max_val
+    # Power compression to avoid extremes
+    compressed = float(np.power(normalized, 0.7))
+    return round(max(0.0, min(1.0, compressed)), 3)
+
+
+def _compute_spectral_pitch(
+    bp_signal: np.ndarray,
+    sr: int,
+    onset_time: float,
+    freq_band: str,
+) -> float:
+    """Compute spectral centroid in a window around onset, normalized within freq band."""
+    half_win = int(SPECTRAL_WINDOW_SEC * sr / 2)
+    center = int(onset_time * sr)
+    start = max(0, center - half_win)
+    end = min(len(bp_signal), center + half_win)
+
+    if end <= start:
+        return 0.5
+
+    window = bp_signal[start:end]
+    if np.max(np.abs(window)) < 1e-8:
+        return 0.5
+
+    centroid = librosa.feature.spectral_centroid(y=window, sr=sr, n_fft=min(len(window), 1024))
+    centroid_hz = float(np.mean(centroid))
+
+    freq_low, freq_high = FREQ_BANDS[freq_band]
+    band_range = freq_high - freq_low
+    if band_range <= 0:
+        return 0.5
+
+    normalized = (centroid_hz - freq_low) / band_range
+    return round(max(0.0, min(1.0, normalized)), 3)
 
 
 def _snap_to_subdivision(

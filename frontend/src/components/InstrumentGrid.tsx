@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
-import type { InstrumentGrid as InstrumentGridType } from "../types/analysis";
+import type { InstrumentGrid as InstrumentGridType, BeatCell } from "../types/analysis";
+import { normalizeBeatCells } from "../types/analysis";
 import type { StemName } from "../hooks/useStemPlayer";
 import "./InstrumentGrid.css";
 
@@ -66,7 +67,7 @@ const STEM_CONFIG: Record<StemName, { label: string; color: string }> = {
   other: { label: "Other", color: "#a855f7" },
 };
 
-type InstrumentBeat = { instrument: string; beats: boolean[]; confidence: number };
+type InstrumentBeat = { instrument: string; beats: boolean[] | BeatCell[]; confidence: number };
 
 type StemGroup = {
   stem: StemName;
@@ -74,6 +75,37 @@ type StemGroup = {
   color: string;
   instruments: InstrumentBeat[];
 };
+
+const PITCH_HUE_RANGES: Record<string, [number, number]> = {
+  bongo: [-10, 20],
+  conga: [-15, 15],
+  bass_guitar: [0, -30],
+  lead_guitar: [-5, 10],
+  rhythm_guitar: [-5, 10],
+  piano: [-10, 10],
+};
+const DEFAULT_HUE_RANGE: [number, number] = [-15, 15];
+
+function getCellStyle(
+  cell: BeatCell,
+  instrument: string,
+  confidence: number,
+): React.CSSProperties {
+  const { velocity, pitch } = cell;
+  // scaleY: 0.5 (soft) → 1.0 (loud)
+  const scaleY = 0.5 + velocity * 0.5;
+  // brightness: 0.7 (soft) → 1.2 (loud)
+  const brightness = 0.7 + velocity * 0.5;
+  // hue-rotate: instrument-specific pitch mapping
+  const [hLow, hHigh] = PITCH_HUE_RANGES[instrument] ?? DEFAULT_HUE_RANGE;
+  const hueRotate = hLow + pitch * (hHigh - hLow);
+
+  return {
+    opacity: Math.max(0.5, confidence),
+    transform: `scaleY(${scaleY.toFixed(2)})`,
+    filter: `brightness(${brightness.toFixed(2)}) hue-rotate(${hueRotate.toFixed(1)}deg)`,
+  };
+}
 
 const PINNED_KEY = "musicality_pinned_instruments";
 
@@ -218,21 +250,21 @@ export function InstrumentGrid({
             {DISPLAY_NAMES[inst.instrument] || inst.instrument}
           </span>
         </div>
-        {inst.beats.slice(0, subdivisions).map((active, i) => {
+        {normalizeBeatCells(inst.beats).slice(0, subdivisions).map((cell, i) => {
           const isCurrent = currentSubdivision === i;
           const isPast = i < currentSubdivision;
           const isPerc = PERCUSSION.has(inst.instrument);
           let cellClass = "instrument-grid__cell";
-          if (active) cellClass += " instrument-grid__cell--active";
+          if (cell.active) cellClass += " instrument-grid__cell--active";
           if (isCurrent) cellClass += " instrument-grid__cell--current";
-          if (isPast && active) cellClass += " instrument-grid__cell--past";
-          if (active && isPerc) cellClass += " instrument-grid__cell--perc";
-          if (active && !isPerc) cellClass += " instrument-grid__cell--melodic";
+          if (isPast && cell.active) cellClass += " instrument-grid__cell--past";
+          if (cell.active && isPerc) cellClass += " instrument-grid__cell--perc";
+          if (cell.active && !isPerc) cellClass += " instrument-grid__cell--melodic";
           return (
             <div
               key={i}
               className={cellClass}
-              style={active ? { opacity: Math.max(0.5, inst.confidence) } : undefined}
+              style={cell.active ? getCellStyle(cell, inst.instrument, inst.confidence) : undefined}
             />
           );
         })}
