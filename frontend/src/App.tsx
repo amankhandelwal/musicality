@@ -3,7 +3,7 @@ import { useAnalysis } from "./hooks/useAnalysis";
 import { useStemPlayer } from "./hooks/useStemPlayer";
 import { useBeatSync } from "./hooks/useBeatSync";
 import { PlayerControls } from "./components/PlayerControls";
-import { StemMixer } from "./components/StemMixer";
+
 import { InstrumentGrid } from "./components/InstrumentGrid";
 import "./styles/globals.css";
 
@@ -117,15 +117,6 @@ function App() {
             onSkipBackward={player.skipBackward}
           />
 
-          {player.stemsAvailable && (
-            <StemMixer
-              mutedStems={player.mutedStems}
-              soloedStem={player.soloedStem}
-              onToggleMute={player.toggleMute}
-              onSolo={player.solo}
-            />
-          )}
-
           <div className="panels">
             <InstrumentGrid
               grid={analysis.result!.instrument_grid}
@@ -134,6 +125,9 @@ function App() {
               currentBeatNum={currentBeatNum}
               mutedStems={player.stemsAvailable ? player.mutedStems : undefined}
               soloedStem={player.stemsAvailable ? player.soloedStem : undefined}
+              onToggleMute={player.stemsAvailable ? player.toggleMute : undefined}
+              onUnmuteAll={player.stemsAvailable ? player.unmuteAll : undefined}
+              onSolo={player.stemsAvailable ? player.solo : undefined}
             />
           </div>
         </>

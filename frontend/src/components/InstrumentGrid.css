@@ -1,5 +1,5 @@
 .instrument-grid {
-  padding: 1rem;
+  padding: 0.75rem;
   background: var(--surface-color);
   border-radius: 0.75rem;
   border: 1px solid var(--border-color);
@@ -10,12 +10,126 @@
   font-size: 0.85rem;
 }
 
+/* Unmute All toolbar — left aligned */
+.instrument-grid__toolbar {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.instrument-grid__unmute-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: background 0.1s, color 0.1s;
+}
+
+.instrument-grid__unmute-all-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
 .instrument-grid__table {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
+/* Stem group layout */
+.instrument-grid__stem-group {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.instrument-grid__stem-group + .instrument-grid__stem-group {
+  margin-top: 12px;
+}
+
+.instrument-grid__stem-controls {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+}
+
+.instrument-grid__stem-controls--muted {
+  opacity: 0.4;
+}
+
+.instrument-grid__stem-bar {
+  width: 3px;
+  align-self: stretch;
+  border-radius: 2px;
+  min-height: 8px;
+}
+
+/* Buttons container — side by side */
+.instrument-grid__stem-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.instrument-grid__stem-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 72px;
+  height: 28px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  padding: 0 6px;
+}
+
+.instrument-grid__stem-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.instrument-grid__stem-btn-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1;
+}
+
+.instrument-grid__stem-btn--mute-active {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.instrument-grid__stem-btn--solo-active {
+  background: rgba(250, 204, 21, 0.2);
+  color: #facc15;
+  border-color: rgba(250, 204, 21, 0.3);
+}
+
+.instrument-grid__stem-rows {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* Row layout */
 .instrument-grid__row {
   display: grid;
   gap: 2px;
@@ -35,7 +149,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 0.72rem;
+  font-size: 0.92rem;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -73,7 +187,7 @@
 .instrument-grid__divider {
   height: 1px;
   background: var(--border-color);
-  margin: 4px 0;
+  margin: 6px 0;
 }
 
 .instrument-grid__beat-header {
@@ -107,14 +221,13 @@
 
 /* Active cells — instrument group colors */
 .instrument-grid__cell--active.instrument-grid__cell--perc {
-  background: #f59e0b; /* warm amber for percussion */
+  background: #f59e0b;
 }
 
 .instrument-grid__cell--active.instrument-grid__cell--melodic {
-  background: var(--accent-color); /* purple for melodic */
+  background: var(--accent-color);
 }
 
-/* Fallback if neither group class applies */
 .instrument-grid__cell--active {
   background: var(--accent-color);
 }

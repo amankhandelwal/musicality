@@ -19,6 +19,7 @@ export interface StemPlayerReturn {
   stems: StemName[];
   mutedStems: Set<StemName>;
   toggleMute: (stem: StemName) => void;
+  unmuteAll: () => void;
   solo: (stem: StemName | null) => void;
   soloedStem: StemName | null;
 }
@@ -301,6 +302,11 @@ export function useStemPlayer(): StemPlayerReturn {
     });
   }, []);
 
+  const unmuteAll = useCallback(() => {
+    setMutedStems(new Set());
+    setSoloedStem(null);
+  }, []);
+
   const solo = useCallback((stem: StemName | null) => {
     setSoloedStem((prev) => (prev === stem ? null : stem));
   }, []);
@@ -333,6 +339,7 @@ export function useStemPlayer(): StemPlayerReturn {
     stems: STEM_NAMES,
     mutedStems,
     toggleMute,
+    unmuteAll,
     solo,
     soloedStem,
   };
