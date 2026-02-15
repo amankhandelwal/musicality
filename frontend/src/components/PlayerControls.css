@@ -1,0 +1,58 @@
+.player-controls {
+  padding: 1rem 0;
+}
+
+.player-controls__buttons {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+
+.player-controls__btn {
+  background: var(--surface-color);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.15s;
+}
+
+.player-controls__btn:hover {
+  background: var(--border-color);
+}
+
+.player-controls__btn--play {
+  padding: 0.5rem 2rem;
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  color: #fff;
+  font-weight: 700;
+}
+
+.player-controls__btn--play:hover {
+  opacity: 0.9;
+}
+
+.player-controls__seek {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.player-controls__slider {
+  flex: 1;
+  accent-color: var(--accent-color);
+  cursor: pointer;
+}
+
+.player-controls__time {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  min-width: 3rem;
+  text-align: center;
+}

@@ -1,0 +1,27 @@
+[project]
+name = "musicality-backend"
+version = "0.1.0"
+description = "Salsa/Bachata music visualization backend"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "cython>=3.2.4",
+    "demucs>=4.0.1",
+    "fastapi>=0.129.0",
+    "librosa>=0.11.0",
+    "madmom @ git+https://github.com/CPJKU/madmom.git",
+    "numpy<2.0",
+    "pydantic>=2.12.5",
+    "python-multipart>=0.0.22",
+    "setuptools<81",
+    "torchcodec>=0.10.0",
+    "uvicorn[standard]>=0.40.0",
+    "yt-dlp>=2026.2.4",
+]
+
+[project.optional-dependencies]
+allinone = [
+    "allin1>=1.0.0",
+]
+
+[tool.uv]
+no-build-isolation-package = ["madmom"]
