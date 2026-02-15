@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import tempfile
 import traceback
+from concurrent.futures import ThreadPoolExecutor
 
 from app.job_store import job_store
 from app.models import (
@@ -62,22 +63,22 @@ def run_pipeline(job_id: str) -> None:
         job.audio_path = audio_path
         genre = guess_genre(title)
 
-        # Stage 2: Beat detection
-        job_store.update_status(job_id, JobStatus.DETECTING_BEATS, 0.15)
-        beats_raw, bars_raw, tempo = detect_beats(audio_path)
+        # Stages 2-4: Beat detection, source separation, section detection (parallel)
+        job_store.update_status(job_id, JobStatus.SEPARATING_STEMS, 0.15)
 
-        # Stage 3: Source separation
-        job_store.update_status(job_id, JobStatus.SEPARATING_STEMS, 0.30)
-        try:
-            stems_dir = separate_stems(audio_path)
-            job.stems_dir = stems_dir
-        except Exception as e:
-            logger.warning(f"Source separation failed, continuing without stems: {e}")
-            stems_dir = None
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            beat_future = pool.submit(detect_beats, audio_path)
+            stem_future = pool.submit(separate_stems, audio_path)
+            section_future = pool.submit(detect_sections, audio_path)
 
-        # Stage 4: Section detection
-        job_store.update_status(job_id, JobStatus.DETECTING_SECTIONS, 0.55)
-        sections_raw = detect_sections(audio_path)
+            beats_raw, bars_raw, tempo = beat_future.result()
+            try:
+                stems_dir = stem_future.result()
+                job.stems_dir = stems_dir
+            except Exception as e:
+                logger.warning(f"Source separation failed, continuing without stems: {e}")
+                stems_dir = None
+            sections_raw = section_future.result()
 
         # Stage 5: Latin section mapping
         job_store.update_status(job_id, JobStatus.MAPPING_SECTIONS, 0.65)
