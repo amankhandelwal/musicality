@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useAnalysis } from "./hooks/useAnalysis";
-import { useAudioPlayer } from "./hooks/useAudioPlayer";
+import { useStemPlayer } from "./hooks/useStemPlayer";
 import { useBeatSync } from "./hooks/useBeatSync";
 import { PlayerControls } from "./components/PlayerControls";
+import { StemMixer } from "./components/StemMixer";
 import { InstrumentGrid } from "./components/InstrumentGrid";
 import "./styles/globals.css";
 
@@ -17,7 +18,7 @@ const STATUS_LABELS: Record<string, string> = {
 function App() {
   const [url, setUrl] = useState("");
   const analysis = useAnalysis();
-  const player = useAudioPlayer();
+  const player = useStemPlayer();
 
   const beats = analysis.result?.beats ?? [];
   const bars = analysis.result?.bars ?? [];
@@ -116,12 +117,23 @@ function App() {
             onSkipBackward={player.skipBackward}
           />
 
+          {player.stemsAvailable && (
+            <StemMixer
+              mutedStems={player.mutedStems}
+              soloedStem={player.soloedStem}
+              onToggleMute={player.toggleMute}
+              onSolo={player.solo}
+            />
+          )}
+
           <div className="panels">
             <InstrumentGrid
               grid={analysis.result!.instrument_grid}
               currentBarNum={currentBarNum}
               currentSubdivision={currentSubdivision}
               currentBeatNum={currentBeatNum}
+              mutedStems={player.stemsAvailable ? player.mutedStems : undefined}
+              soloedStem={player.stemsAvailable ? player.soloedStem : undefined}
             />
           </div>
         </>

@@ -20,40 +20,61 @@ export function useAnalysis(): UseAnalysisReturn {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
-  const pollRef = useRef<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const stopPolling = useCallback(() => {
-    if (pollRef.current !== null) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
     }
   }, []);
 
   const poll = useCallback(
     (id: string) => {
-      pollRef.current = window.setInterval(async () => {
-        try {
-          const res = await fetch(`${API_BASE}/jobs/${id}`);
-          if (!res.ok) throw new Error("Failed to fetch job status");
-          const data: JobResponse = await res.json();
+      const controller = new AbortController();
+      abortRef.current = controller;
 
-          setStatus(data.status);
-          setProgress(data.progress);
+      (async () => {
+        let lastStatus: string | null = null;
+        let lastProgress: number | null = null;
 
-          if (data.status === "complete" && data.result) {
-            setResult(data.result);
-            stopPolling();
-          } else if (data.status === "failed") {
-            setError(data.error || "Analysis failed");
-            stopPolling();
+        while (!controller.signal.aborted) {
+          try {
+            // Build long-poll URL with last-known state
+            let url = `${API_BASE}/jobs/${id}`;
+            if (lastStatus !== null) {
+              const params = new URLSearchParams({
+                after_status: lastStatus,
+                after_progress: String(lastProgress ?? 0),
+              });
+              url += `?${params}`;
+            }
+
+            const res = await fetch(url, { signal: controller.signal });
+            if (!res.ok) throw new Error("Failed to fetch job status");
+            const data: JobResponse = await res.json();
+
+            setStatus(data.status);
+            setProgress(data.progress);
+            lastStatus = data.status;
+            lastProgress = data.progress;
+
+            if (data.status === "complete" && data.result) {
+              setResult(data.result);
+              break;
+            } else if (data.status === "failed") {
+              setError(data.error || "Analysis failed");
+              break;
+            }
+          } catch (e) {
+            if (controller.signal.aborted) return;
+            setError(e instanceof Error ? e.message : "Unknown error");
+            break;
           }
-        } catch (e) {
-          setError(e instanceof Error ? e.message : "Unknown error");
-          stopPolling();
         }
-      }, 1500);
+      })();
     },
-    [stopPolling]
+    []
   );
 
   const submit = useCallback(

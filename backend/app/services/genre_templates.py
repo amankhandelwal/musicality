@@ -57,6 +57,12 @@ BACHATA_TEMPLATES: list[InstrumentTemplate] = [
         freq_band="mid",
     ),
     InstrumentTemplate(
+        name="piano",
+        display_name="Piano",
+        stem="other",
+        freq_band="mid",
+    ),
+    InstrumentTemplate(
         name="voice",
         display_name="Voice",
         stem="vocals",

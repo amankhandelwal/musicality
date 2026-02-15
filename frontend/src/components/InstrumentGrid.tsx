@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import type { InstrumentGrid as InstrumentGridType } from "../types/analysis";
+import type { StemName } from "../hooks/useStemPlayer";
 import "./InstrumentGrid.css";
 
 interface InstrumentGridProps {
@@ -7,6 +8,8 @@ interface InstrumentGridProps {
   currentBarNum: number;
   currentSubdivision: number;
   currentBeatNum: number;
+  mutedStems?: Set<StemName>;
+  soloedStem?: StemName | null;
 }
 
 const DISPLAY_NAMES: Record<string, string> = {
@@ -35,6 +38,24 @@ const INSTRUMENT_ORDER = [
 // Instrument group colors
 const PERCUSSION = new Set(["guira", "bongo", "conga", "timbales", "cowbell", "claves", "maracas_guiro"]);
 
+// Map each instrument to its Demucs stem
+const INSTRUMENT_STEM: Record<string, StemName> = {
+  guira: "drums",
+  bongo: "drums",
+  conga: "drums",
+  timbales: "drums",
+  cowbell: "drums",
+  claves: "drums",
+  maracas_guiro: "drums",
+  bass_guitar: "bass",
+  voice: "vocals",
+  rhythm_guitar: "other",
+  lead_guitar: "other",
+  piano: "other",
+  trumpet: "other",
+  trombone: "other",
+};
+
 const PINNED_KEY = "musicality_pinned_instruments";
 
 function loadPinned(): Set<string> {
@@ -54,6 +75,8 @@ export function InstrumentGrid({
   currentBarNum,
   currentSubdivision,
   currentBeatNum,
+  mutedStems,
+  soloedStem,
 }: InstrumentGridProps) {
   const subdivisions = grid.subdivisions ?? 16;
   const [pinned, setPinned] = useState<Set<string>>(loadPinned);
@@ -123,10 +146,20 @@ export function InstrumentGrid({
     </div>
   );
 
-  const renderRow = (inst: { instrument: string; beats: boolean[]; confidence: number }) => (
+  const isInstrumentMuted = (instrument: string): boolean => {
+    const stem = INSTRUMENT_STEM[instrument];
+    if (!stem) return false;
+    if (soloedStem !== undefined && soloedStem !== null) return stem !== soloedStem;
+    if (mutedStems) return mutedStems.has(stem);
+    return false;
+  };
+
+  const renderRow = (inst: { instrument: string; beats: boolean[]; confidence: number }) => {
+    const muted = isInstrumentMuted(inst.instrument);
+    return (
     <div
       key={inst.instrument}
-      className="instrument-grid__row"
+      className={`instrument-grid__row${muted ? " instrument-grid__row--muted" : ""}`}
       style={{ gridTemplateColumns: colTemplate }}
     >
       <div className="instrument-grid__label">
@@ -163,6 +196,7 @@ export function InstrumentGrid({
       })}
     </div>
   );
+  };
 
   return (
     <div className="instrument-grid">
