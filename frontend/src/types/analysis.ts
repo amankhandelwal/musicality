@@ -2,15 +2,6 @@ export type GenreHint = "salsa" | "bachata" | "unknown";
 
 export type GenreOption = "salsa" | "bachata";
 
-export type JobStatus =
-  | "queued"
-  | "downloading"
-  | "detecting_beats"
-  | "separating_stems"
-  | "analyzing_instruments"
-  | "complete"
-  | "failed";
-
 export interface Beat {
   time: number;
   beat_num: number;
@@ -73,10 +64,6 @@ export interface AnalysisResult {
   instrument_grid: InstrumentGrid;
 }
 
-export interface JobResponse {
-  job_id: string;
-  status: JobStatus;
-  progress: number;
-  error: string | null;
-  result: AnalysisResult | null;
-}
+// Re-export from split modules for backward compatibility
+export type { JobStatus, JobResponse } from "./job";
+export type { StemName } from "./audio";

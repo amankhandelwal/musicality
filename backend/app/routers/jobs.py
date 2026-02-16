@@ -1,14 +1,18 @@
+from __future__ import annotations
+
 import asyncio
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.job_store import job_store
-from app.models import JobResponse, JobStatus
+from app.api.schemas import JobResponse
+from app.dependencies import get_job_repository
+from app.jobs.in_memory_repository import InMemoryJobRepository
+from app.jobs.models import JobStatus
 
 router = APIRouter()
 
-LONG_POLL_TIMEOUT = 30.0  # seconds
-LONG_POLL_INTERVAL = 0.5  # check every 500ms
+LONG_POLL_TIMEOUT = 30.0
+LONG_POLL_INTERVAL = 0.5
 
 
 @router.get("/jobs/{job_id}")
@@ -16,12 +20,12 @@ async def get_job(
     job_id: str,
     after_status: str | None = Query(None),
     after_progress: float | None = Query(None),
+    job_repo: InMemoryJobRepository = Depends(get_job_repository),
 ) -> JobResponse:
-    job = job_store.get(job_id)
+    job = job_repo.get(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    # Long-poll: hold the request until status or progress changes
     if after_status is not None:
         elapsed = 0.0
         while elapsed < LONG_POLL_TIMEOUT:

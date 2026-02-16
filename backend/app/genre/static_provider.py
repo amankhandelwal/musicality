@@ -1,30 +1,6 @@
-"""Genre-specific instrument templates for onset-based analysis.
-
-Each template defines which instruments are expected in a genre, which Demucs
-stem they live in, and their frequency band for sub-stem attribution.
-"""
-
 from __future__ import annotations
 
-from dataclasses import dataclass
-
-
-@dataclass(frozen=True)
-class InstrumentTemplate:
-    name: str
-    display_name: str
-    stem: str          # drums, bass, vocals, other
-    freq_band: str     # low, mid, high
-
-
-# Frequency band cutoffs (Hz) used for bandpass filtering
-FREQ_BANDS = {
-    "low": (20, 500),
-    "low_mid": (500, 2000),
-    "mid": (500, 4000),
-    "mid_high": (2000, 6000),
-    "high": (4000, 16000),
-}
+from app.genre.models import InstrumentTemplate
 
 
 BACHATA_TEMPLATES: list[InstrumentTemplate] = [
@@ -137,11 +113,10 @@ SALSA_TEMPLATES: list[InstrumentTemplate] = [
 ]
 
 
-def get_templates(genre: str) -> list[InstrumentTemplate]:
-    """Return instrument templates for the given genre."""
-    if genre == "bachata":
+class StaticGenreTemplateProvider:
+    def get_templates(self, genre: str) -> list[InstrumentTemplate]:
+        if genre == "bachata":
+            return BACHATA_TEMPLATES
+        elif genre == "salsa":
+            return SALSA_TEMPLATES
         return BACHATA_TEMPLATES
-    elif genre == "salsa":
-        return SALSA_TEMPLATES
-    # Default to bachata
-    return BACHATA_TEMPLATES

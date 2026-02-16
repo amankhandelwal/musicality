@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import type { StemName } from "../types/audio";
 
-export type StemName = "drums" | "bass" | "vocals" | "other";
+export type { StemName };
 const STEM_NAMES: StemName[] = ["drums", "bass", "vocals", "other"];
 
 export interface StemPlayerReturn {

@@ -2,27 +2,11 @@ from __future__ import annotations
 
 import threading
 import time
-from dataclasses import dataclass, field
 
-from app.models import AnalysisResult, GenreHint, JobStatus
-
-
-@dataclass
-class Job:
-    job_id: str
-    url: str
-    status: JobStatus = JobStatus.QUEUED
-    progress: float = 0.0
-    error: str | None = None
-    result: AnalysisResult | None = None
-    video_id: str | None = None
-    genre: GenreHint | None = None
-    audio_path: str | None = None
-    stems_dir: str | None = None
-    created_at: float = field(default_factory=time.time)
+from app.jobs.models import Job, JobStatus
 
 
-class JobStore:
+class InMemoryJobRepository:
     def __init__(self) -> None:
         self._jobs: dict[str, Job] = {}
         self._lock = threading.Lock()
@@ -54,7 +38,7 @@ class JobStore:
                 job.status = JobStatus.FAILED
                 job.error = error
 
-    def set_result(self, job_id: str, result: AnalysisResult) -> None:
+    def set_result(self, job_id: str, result: object) -> None:
         with self._lock:
             job = self._jobs.get(job_id)
             if job:
@@ -103,6 +87,3 @@ class JobStore:
                 1 for j in self._jobs.values()
                 if j.status not in (JobStatus.COMPLETE, JobStatus.FAILED)
             )
-
-
-job_store = JobStore()

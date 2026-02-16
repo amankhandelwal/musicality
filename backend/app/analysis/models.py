@@ -1,28 +1,8 @@
 from __future__ import annotations
 
-from enum import Enum
 from pydantic import BaseModel
 
-
-class GenreHint(str, Enum):
-    SALSA = "salsa"
-    BACHATA = "bachata"
-    UNKNOWN = "unknown"
-
-
-class JobStatus(str, Enum):
-    QUEUED = "queued"
-    DOWNLOADING = "downloading"
-    DETECTING_BEATS = "detecting_beats"
-    SEPARATING_STEMS = "separating_stems"
-    ANALYZING_INSTRUMENTS = "analyzing_instruments"
-    COMPLETE = "complete"
-    FAILED = "failed"
-
-
-class AnalyzeRequest(BaseModel):
-    url: str
-    genre: GenreHint | None = None  # None = auto-detect from title
+from app.genre.models import GenreHint
 
 
 class Beat(BaseModel):
@@ -38,8 +18,8 @@ class Bar(BaseModel):
 
 class BeatCell(BaseModel):
     active: bool
-    velocity: float = 0.0  # 0.0-1.0, normalized onset strength
-    pitch: float = 0.5     # 0.0-1.0, spectral centroid normalized within freq band
+    velocity: float = 0.0
+    pitch: float = 0.5
 
 
 class InstrumentBeat(BaseModel):
@@ -72,11 +52,3 @@ class AnalysisResult(BaseModel):
     beats: list[Beat]
     bars: list[Bar]
     instrument_grid: InstrumentGrid
-
-
-class JobResponse(BaseModel):
-    job_id: str
-    status: JobStatus
-    progress: float = 0.0
-    error: str | None = None
-    result: AnalysisResult | None = None

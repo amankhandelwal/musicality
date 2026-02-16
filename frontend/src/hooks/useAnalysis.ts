@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback } from "react";
-import type { AnalysisResult, GenreOption, JobResponse, JobStatus } from "../types/analysis";
-
-const API_BASE = "http://localhost:8000";
+import { submitAnalysis, pollJob } from "../api/analysisApi";
+import { getAudioUrl } from "../api/audioApi";
+import type { AnalysisResult, GenreOption } from "../types/analysis";
+import type { JobStatus } from "../types/job";
 
 interface UseAnalysisReturn {
   submit: (url: string, genre: GenreOption) => void;
@@ -40,19 +41,7 @@ export function useAnalysis(): UseAnalysisReturn {
 
         while (!controller.signal.aborted) {
           try {
-            // Build long-poll URL with last-known state
-            let url = `${API_BASE}/jobs/${id}`;
-            if (lastStatus !== null) {
-              const params = new URLSearchParams({
-                after_status: lastStatus,
-                after_progress: String(lastProgress ?? 0),
-              });
-              url += `?${params}`;
-            }
-
-            const res = await fetch(url, { signal: controller.signal });
-            if (!res.ok) throw new Error("Failed to fetch job status");
-            const data: JobResponse = await res.json();
+            const data = await pollJob(id, lastStatus, lastProgress, controller.signal);
 
             setStatus(data.status);
             setProgress(data.progress);
@@ -87,18 +76,7 @@ export function useAnalysis(): UseAnalysisReturn {
       setJobId(null);
 
       try {
-        const res = await fetch(`${API_BASE}/analyze`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url, genre }),
-        });
-
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.detail || `HTTP ${res.status}`);
-        }
-
-        const data = await res.json();
+        const data = await submitAnalysis(url, genre);
         setJobId(data.job_id);
         poll(data.job_id);
       } catch (e) {
@@ -109,7 +87,7 @@ export function useAnalysis(): UseAnalysisReturn {
     [poll, stopPolling]
   );
 
-  const audioUrl = jobId ? `${API_BASE}/audio/${jobId}` : null;
+  const audioUrl = jobId ? getAudioUrl(jobId) : null;
   const isLoading =
     status !== null && status !== "complete" && status !== "failed";
 

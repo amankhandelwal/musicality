@@ -1,19 +1,23 @@
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 
-from app.job_store import job_store
+from app.dependencies import get_job_repository
+from app.jobs.in_memory_repository import InMemoryJobRepository
 
 router = APIRouter()
 
-STEM_NAMES = ("drums", "bass", "vocals", "other")
-
 
 @router.get("/audio/{job_id}")
-def get_audio(job_id: str) -> FileResponse:
-    job = job_store.get(job_id)
+def get_audio(
+    job_id: str,
+    job_repo: InMemoryJobRepository = Depends(get_job_repository),
+) -> FileResponse:
+    job = job_repo.get(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     if not job.audio_path or not Path(job.audio_path).exists():
@@ -29,8 +33,9 @@ def get_audio(job_id: str) -> FileResponse:
 def get_stem(
     job_id: str,
     stem_name: Literal["drums", "bass", "vocals", "other"],
+    job_repo: InMemoryJobRepository = Depends(get_job_repository),
 ) -> FileResponse:
-    job = job_store.get(job_id)
+    job = job_repo.get(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     if not job.stems_dir:
