@@ -5,6 +5,7 @@ import { useBeatSync } from "./hooks/useBeatSync";
 import { PlayerControls } from "./components/PlayerControls";
 
 import { InstrumentGrid } from "./components/InstrumentGrid";
+import type { GenreOption } from "./types/analysis";
 import "./styles/globals.css";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -17,6 +18,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 function App() {
   const [url, setUrl] = useState("");
+  const [genre, setGenre] = useState<GenreOption>("bachata");
   const analysis = useAnalysis();
   const player = useStemPlayer();
 
@@ -37,7 +39,7 @@ function App() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (url.trim()) {
-      analysis.submit(url.trim());
+      analysis.submit(url.trim(), genre);
     }
   };
 
@@ -72,6 +74,22 @@ function App() {
           <p className="landing__subtitle">
             Visualize salsa &amp; bachata music structure
           </p>
+          <div className="genre-toggle">
+            <button
+              className={`genre-toggle__btn ${genre === "bachata" ? "genre-toggle__btn--active" : ""}`}
+              onClick={() => setGenre("bachata")}
+              type="button"
+            >
+              Bachata
+            </button>
+            <button
+              className={`genre-toggle__btn ${genre === "salsa" ? "genre-toggle__btn--active" : ""}`}
+              onClick={() => setGenre("salsa")}
+              type="button"
+            >
+              Salsa
+            </button>
+          </div>
           {searchForm}
 
           {analysis.isLoading && analysis.status && (
@@ -96,6 +114,22 @@ function App() {
         <>
           <div className="top-bar">
             <span className="top-bar__title">Musicality</span>
+            <div className="genre-toggle genre-toggle--compact">
+              <button
+                className={`genre-toggle__btn ${genre === "bachata" ? "genre-toggle__btn--active" : ""}`}
+                onClick={() => setGenre("bachata")}
+                type="button"
+              >
+                Bachata
+              </button>
+              <button
+                className={`genre-toggle__btn ${genre === "salsa" ? "genre-toggle__btn--active" : ""}`}
+                onClick={() => setGenre("salsa")}
+                type="button"
+              >
+                Salsa
+              </button>
+            </div>
             {searchForm}
           </div>
 

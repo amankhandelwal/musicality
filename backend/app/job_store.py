@@ -4,7 +4,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 
-from app.models import AnalysisResult, JobStatus
+from app.models import AnalysisResult, GenreHint, JobStatus
 
 
 @dataclass
@@ -16,6 +16,7 @@ class Job:
     error: str | None = None
     result: AnalysisResult | None = None
     video_id: str | None = None
+    genre: GenreHint | None = None
     audio_path: str | None = None
     stems_dir: str | None = None
     created_at: float = field(default_factory=time.time)

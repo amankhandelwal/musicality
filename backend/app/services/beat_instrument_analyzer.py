@@ -18,11 +18,19 @@ from app.services.genre_templates import FREQ_BANDS, InstrumentTemplate, get_tem
 logger = logging.getLogger(__name__)
 
 NUM_SUBDIVISIONS = 16
-ONSET_WINDOW_SEC = 0.030  # 30ms window for sub-stem energy attribution
-ENERGY_RATIO_THRESHOLD = 0.3  # min energy ratio to attribute onset to sub-stem
+ONSET_WINDOW_SEC = 0.050  # 50ms window for sub-stem energy attribution
+ENERGY_RATIO_THRESHOLD = 0.4  # min energy ratio to attribute onset to sub-stem
 PRESENCE_THRESHOLD = 0.005  # below this, stem has negligible energy
-SNAP_TOLERANCE = 0.5  # max fraction of subdivision duration to snap
+SNAP_TOLERANCE = 0.4  # max fraction of subdivision duration to snap
 SPECTRAL_WINDOW_SEC = 0.050  # 50ms window for spectral centroid computation
+
+# Grid regularization: blend local beat-derived positions with expected uniform grid
+GRID_REGULARIZATION_ALPHA = 0.6  # weight for local beats (1-alpha for expected)
+
+# Pattern smoothing constants
+SMOOTH_WINDOW_MIN_SECTION = 3  # min bars in a section for smoothing
+SECTION_BREAK_THRESHOLD = 0.3  # Jaccard similarity below this = section boundary
+DEVIATION_THRESHOLD = 4  # max Hamming distance before replacing with consensus
 
 
 def analyze_instruments(
@@ -84,10 +92,16 @@ def analyze_instruments(
     # Build beat time list for subdivision grid computation
     beat_times = [b["time"] for b in beats]
 
+    # Compute global median beat period for grid regularization
+    median_beat_period = None
+    if len(beat_times) >= 2:
+        beat_diffs = [beat_times[i + 1] - beat_times[i] for i in range(len(beat_times) - 1)]
+        median_beat_period = float(np.median(beat_diffs))
+
     result_bars = []
     for cycle_num, (cycle_start, cycle_end) in enumerate(cycles):
         subdiv_times = _build_subdivision_grid(
-            cycle_start, cycle_end, beat_times
+            cycle_start, cycle_end, beat_times, median_beat_period
         )
 
         cycle_instruments = _analyze_cycle_onsets(
@@ -109,12 +123,193 @@ def analyze_instruments(
             "instruments": cycle_instruments,
         })
 
+    result_bars = _smooth_instrument_patterns(result_bars)
+
     return {
         "genre": genre,
         "instrument_list": instrument_names,
         "subdivisions": NUM_SUBDIVISIONS,
         "bars": result_bars,
     }
+
+
+def _smooth_instrument_patterns(result_bars: list[dict]) -> list[dict]:
+    """Smooth instrument patterns across bars to enforce cross-bar consistency.
+
+    Groups bars into sections by Jaccard similarity, then applies majority-vote
+    consensus within each section. Bars that deviate too much from consensus
+    are replaced. Section boundaries are preserved so real musical changes
+    (e.g., derecho to mambo) are not smoothed over.
+    """
+    if len(result_bars) < SMOOTH_WINDOW_MIN_SECTION:
+        return result_bars
+
+    # Collect all instrument names across all bars
+    all_instruments: set[str] = set()
+    for bar in result_bars:
+        for inst in bar["instruments"]:
+            all_instruments.add(inst["instrument"])
+
+    for inst_name in all_instruments:
+        # Extract boolean patterns for this instrument across bars
+        patterns: list[list[bool] | None] = []
+        for bar in result_bars:
+            inst_data = next(
+                (i for i in bar["instruments"] if i["instrument"] == inst_name),
+                None,
+            )
+            if inst_data is None:
+                patterns.append(None)
+            else:
+                patterns.append([
+                    cell["active"] if isinstance(cell, dict) else cell
+                    for cell in inst_data["beats"]
+                ])
+
+        # Segment into sections based on Jaccard similarity
+        sections = _segment_into_sections(patterns, SECTION_BREAK_THRESHOLD)
+
+        for section_indices in sections:
+            if len(section_indices) < SMOOTH_WINDOW_MIN_SECTION:
+                continue
+
+            section_patterns = [patterns[i] for i in section_indices if patterns[i] is not None]
+            if len(section_patterns) < SMOOTH_WINDOW_MIN_SECTION:
+                continue
+
+            consensus = _compute_consensus(section_patterns)
+
+            for bar_idx in section_indices:
+                if patterns[bar_idx] is None:
+                    continue
+
+                hamming = sum(
+                    a != b for a, b in zip(patterns[bar_idx], consensus)
+                )
+                if hamming > DEVIATION_THRESHOLD:
+                    _apply_consensus(
+                        result_bars, bar_idx, inst_name, consensus,
+                        section_indices,
+                    )
+
+    return result_bars
+
+
+def _segment_into_sections(
+    patterns: list[list[bool] | None],
+    threshold: float,
+) -> list[list[int]]:
+    """Group bar indices into sections based on Jaccard similarity of consecutive bars."""
+    sections: list[list[int]] = []
+    current_section: list[int] = [0]
+
+    for i in range(1, len(patterns)):
+        prev = patterns[i - 1]
+        curr = patterns[i]
+
+        if prev is None or curr is None:
+            # None patterns break sections
+            if current_section:
+                sections.append(current_section)
+            current_section = [i]
+            continue
+
+        jaccard = _jaccard_similarity(prev, curr)
+        if jaccard < threshold:
+            sections.append(current_section)
+            current_section = [i]
+        else:
+            current_section.append(i)
+
+    if current_section:
+        sections.append(current_section)
+
+    return sections
+
+
+def _jaccard_similarity(a: list[bool], b: list[bool]) -> float:
+    """Compute Jaccard similarity between two boolean patterns."""
+    set_a = {i for i, v in enumerate(a) if v}
+    set_b = {i for i, v in enumerate(b) if v}
+
+    if not set_a and not set_b:
+        return 1.0  # both empty = identical
+
+    intersection = len(set_a & set_b)
+    union = len(set_a | set_b)
+    return intersection / union if union > 0 else 0.0
+
+
+def _compute_consensus(section_patterns: list[list[bool]]) -> list[bool]:
+    """Compute majority-vote consensus pattern from a list of boolean patterns."""
+    n = len(section_patterns)
+    consensus = []
+    for subdiv in range(NUM_SUBDIVISIONS):
+        active_count = sum(1 for p in section_patterns if p[subdiv])
+        consensus.append(active_count >= n / 2)
+    return consensus
+
+
+def _apply_consensus(
+    result_bars: list[dict],
+    bar_idx: int,
+    inst_name: str,
+    consensus: list[bool],
+    section_indices: list[int],
+) -> None:
+    """Replace a noisy bar's pattern with the consensus, averaging velocity/pitch from neighbors."""
+    bar = result_bars[bar_idx]
+    inst_data = next(
+        (i for i in bar["instruments"] if i["instrument"] == inst_name),
+        None,
+    )
+    if inst_data is None:
+        return
+
+    # Find nearest non-replaced bars in the section for velocity/pitch averaging
+    neighbor_velocities: list[list[float]] = [[] for _ in range(NUM_SUBDIVISIONS)]
+    neighbor_pitches: list[list[float]] = [[] for _ in range(NUM_SUBDIVISIONS)]
+
+    for idx in section_indices:
+        if idx == bar_idx:
+            continue
+        other_bar = result_bars[idx]
+        other_inst = next(
+            (i for i in other_bar["instruments"] if i["instrument"] == inst_name),
+            None,
+        )
+        if other_inst is None:
+            continue
+        for s in range(NUM_SUBDIVISIONS):
+            cell = other_inst["beats"][s]
+            if isinstance(cell, dict) and cell.get("active"):
+                neighbor_velocities[s].append(cell.get("velocity", 0.7))
+                neighbor_pitches[s].append(cell.get("pitch", 0.5))
+
+    # Apply consensus pattern
+    for s in range(NUM_SUBDIVISIONS):
+        if consensus[s]:
+            avg_vel = (
+                sum(neighbor_velocities[s]) / len(neighbor_velocities[s])
+                if neighbor_velocities[s]
+                else 0.7
+            )
+            avg_pitch = (
+                sum(neighbor_pitches[s]) / len(neighbor_pitches[s])
+                if neighbor_pitches[s]
+                else 0.5
+            )
+            inst_data["beats"][s] = {
+                "active": True,
+                "velocity": round(avg_vel, 3),
+                "pitch": round(avg_pitch, 3),
+            }
+        else:
+            inst_data["beats"][s] = {
+                "active": False,
+                "velocity": 0.0,
+                "pitch": 0.5,
+            }
 
 
 def _pair_bars_into_cycles(bars: list[dict]) -> list[tuple[float, float]]:
@@ -135,11 +330,14 @@ def _build_subdivision_grid(
     cycle_start: float,
     cycle_end: float,
     beat_times: list[float],
+    median_beat_period: float | None = None,
 ) -> list[float]:
     """Build 16 subdivision timestamps for an 8-count cycle.
 
-    Uses actual beat times within the cycle. For each beat, the "&" position
-    is the midpoint to the next beat (handles tempo drift naturally).
+    Uses actual beat times within the cycle, blended with an expected uniform
+    grid derived from the global median beat period. This dampens 10-20ms
+    timing jitter while preserving real tempo changes.
+
     Falls back to uniform spacing if fewer than 2 beats found in the cycle.
     """
     # Find beats within this cycle
@@ -173,7 +371,32 @@ def _build_subdivision_grid(
             subdivs.append(last + j * gap)
     subdivs = subdivs[:NUM_SUBDIVISIONS]
 
+    # Blend local subdivisions with expected uniform grid to reduce jitter
+    if median_beat_period is not None:
+        expected = _build_expected_grid(cycle_start, median_beat_period)
+        alpha = GRID_REGULARIZATION_ALPHA
+        subdivs = [
+            alpha * local + (1 - alpha) * exp
+            for local, exp in zip(subdivs, expected)
+        ]
+
     return subdivs
+
+
+def _build_expected_grid(
+    cycle_start: float,
+    median_beat_period: float,
+) -> list[float]:
+    """Build an expected uniform 16-subdivision grid from median beat period.
+
+    8 beats spaced by median_beat_period, with "&" midpoints between each.
+    """
+    expected = []
+    for i in range(8):
+        beat_time = cycle_start + i * median_beat_period
+        expected.append(beat_time)  # on-beat
+        expected.append(beat_time + median_beat_period / 2.0)  # "&"
+    return expected[:NUM_SUBDIVISIONS]
 
 
 def _analyze_cycle_onsets(

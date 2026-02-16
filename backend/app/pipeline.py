@@ -58,7 +58,7 @@ def run_pipeline(job_id: str) -> None:
                 job_store.set_audio_cache(job.video_id, audio_path, title, duration)
 
         job.audio_path = audio_path
-        genre = guess_genre(title)
+        genre = job.genre if job.genre else guess_genre(title)
 
         # Stages 2-3: Beat detection + source separation (parallel)
         job_store.update_status(job_id, JobStatus.SEPARATING_STEMS, 0.15)

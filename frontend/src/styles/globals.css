@@ -224,6 +224,43 @@ body {
   color: var(--text-secondary);
 }
 
+/* Genre toggle — pill-shaped segmented control */
+.genre-toggle {
+  display: inline-flex;
+  border-radius: 1.5rem;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.genre-toggle--compact {
+  margin-bottom: 0;
+}
+
+.genre-toggle__btn {
+  padding: 0.4rem 1.25rem;
+  border: none;
+  background: var(--surface-color);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.genre-toggle__btn:first-child {
+  border-right: 1px solid var(--border-color);
+}
+
+.genre-toggle__btn--active {
+  background: var(--accent-color);
+  color: #fff;
+}
+
+.genre-toggle__btn:hover:not(.genre-toggle__btn--active) {
+  background: var(--surface-hover);
+}
+
 .panels {
   margin-top: 0.5rem;
 }

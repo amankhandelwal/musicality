@@ -1,10 +1,10 @@
 import { useState, useRef, useCallback } from "react";
-import type { AnalysisResult, JobResponse, JobStatus } from "../types/analysis";
+import type { AnalysisResult, GenreOption, JobResponse, JobStatus } from "../types/analysis";
 
 const API_BASE = "http://localhost:8000";
 
 interface UseAnalysisReturn {
-  submit: (url: string) => void;
+  submit: (url: string, genre: GenreOption) => void;
   status: JobStatus | null;
   progress: number;
   error: string | null;
@@ -78,7 +78,7 @@ export function useAnalysis(): UseAnalysisReturn {
   );
 
   const submit = useCallback(
-    async (url: string) => {
+    async (url: string, genre: GenreOption) => {
       stopPolling();
       setStatus("queued");
       setProgress(0);
@@ -90,7 +90,7 @@ export function useAnalysis(): UseAnalysisReturn {
         const res = await fetch(`${API_BASE}/analyze`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url }),
+          body: JSON.stringify({ url, genre }),
         });
 
         if (!res.ok) {

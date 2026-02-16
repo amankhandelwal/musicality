@@ -20,7 +20,9 @@ class InstrumentTemplate:
 # Frequency band cutoffs (Hz) used for bandpass filtering
 FREQ_BANDS = {
     "low": (20, 500),
+    "low_mid": (500, 2000),
     "mid": (500, 4000),
+    "mid_high": (2000, 6000),
     "high": (4000, 16000),
 }
 
@@ -82,13 +84,13 @@ SALSA_TEMPLATES: list[InstrumentTemplate] = [
         name="timbales",
         display_name="Timbales",
         stem="drums",
-        freq_band="mid",
+        freq_band="low_mid",
     ),
     InstrumentTemplate(
         name="cowbell",
         display_name="Cowbell",
         stem="drums",
-        freq_band="high",
+        freq_band="mid_high",
     ),
     InstrumentTemplate(
         name="claves",

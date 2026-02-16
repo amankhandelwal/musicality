@@ -1,5 +1,7 @@
 export type GenreHint = "salsa" | "bachata" | "unknown";
 
+export type GenreOption = "salsa" | "bachata";
+
 export type JobStatus =
   | "queued"
   | "downloading"

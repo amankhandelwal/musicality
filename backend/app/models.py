@@ -22,6 +22,7 @@ class JobStatus(str, Enum):
 
 class AnalyzeRequest(BaseModel):
     url: str
+    genre: GenreHint | None = None  # None = auto-detect from title
 
 
 class Beat(BaseModel):

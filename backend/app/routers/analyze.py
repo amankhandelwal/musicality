@@ -33,14 +33,17 @@ def start_analysis(req: AnalyzeRequest) -> dict[str, str]:
     if not video_id:
         raise HTTPException(status_code=400, detail="Invalid YouTube URL")
 
-    cached_job_id = job_store.get_cached_job_id(video_id)
+    genre_key = req.genre.value if req.genre else "auto"
+    cache_key = f"{video_id}:{genre_key}"
+
+    cached_job_id = job_store.get_cached_job_id(cache_key)
     if cached_job_id:
         cached = job_store.get(cached_job_id)
         if cached and cached.status == JobStatus.COMPLETE:
             return {"job_id": cached_job_id}
         # Stale/failed cache entry — clear it so we can re-run
         if cached and cached.status == JobStatus.FAILED:
-            job_store.remove(cached_job_id, video_id)
+            job_store.remove(cached_job_id, cache_key)
 
     if job_store.active_count >= MAX_CONCURRENT_JOBS:
         raise HTTPException(status_code=429, detail="Too many active jobs. Try again later.")
@@ -48,7 +51,8 @@ def start_analysis(req: AnalyzeRequest) -> dict[str, str]:
     job_id = uuid.uuid4().hex[:12]
     job = job_store.create(job_id, req.url)
     job.video_id = video_id
-    job_store.set_cache(video_id, job_id)
+    job.genre = req.genre
+    job_store.set_cache(cache_key, job_id)
 
     thread = threading.Thread(target=run_pipeline, args=(job_id,), daemon=True)
     thread.start()
