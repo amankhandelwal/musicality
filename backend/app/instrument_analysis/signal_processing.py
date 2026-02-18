@@ -165,7 +165,7 @@ def load_stems(stems_dir: str) -> dict[str, tuple[np.ndarray, int]]:
     """Load all available stem audio files."""
     stems = {}
     stems_path = Path(stems_dir)
-    for stem_name in ["drums", "bass", "vocals", "other"]:
+    for stem_name in ["drums", "bass", "vocals", "guitar", "piano", "other"]:
         stem_file = stems_path / f"{stem_name}.wav"
         if stem_file.exists():
             try:

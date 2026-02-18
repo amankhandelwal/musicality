@@ -51,19 +51,21 @@ const INSTRUMENT_STEM: Record<string, StemName> = {
   maracas_guiro: "drums",
   bass_guitar: "bass",
   voice: "vocals",
-  rhythm_guitar: "other",
-  lead_guitar: "other",
-  piano: "other",
+  rhythm_guitar: "guitar",
+  lead_guitar: "guitar",
+  piano: "piano",
   trumpet: "other",
   trombone: "other",
 };
 
-const STEM_ORDER: StemName[] = ["drums", "bass", "vocals", "other"];
+const STEM_ORDER: StemName[] = ["drums", "bass", "vocals", "guitar", "piano", "other"];
 
 const STEM_CONFIG: Record<StemName, { label: string; color: string }> = {
   drums: { label: "Drums", color: "#f59e0b" },
   bass: { label: "Bass", color: "#3b82f6" },
   vocals: { label: "Vocals", color: "#ec4899" },
+  guitar: { label: "Guitar", color: "#10b981" },
+  piano: { label: "Piano", color: "#6366f1" },
   other: { label: "Other", color: "#a855f7" },
 };
 

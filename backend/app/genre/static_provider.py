@@ -25,19 +25,19 @@ BACHATA_TEMPLATES: list[InstrumentTemplate] = [
     InstrumentTemplate(
         name="lead_guitar",
         display_name="Lead Gtr",
-        stem="other",
+        stem="guitar",
         freq_band="high",
     ),
     InstrumentTemplate(
         name="rhythm_guitar",
         display_name="Rhy Gtr",
-        stem="other",
+        stem="guitar",
         freq_band="mid",
     ),
     InstrumentTemplate(
         name="piano",
         display_name="Piano",
-        stem="other",
+        stem="piano",
         freq_band="mid",
     ),
     InstrumentTemplate(
@@ -89,7 +89,7 @@ SALSA_TEMPLATES: list[InstrumentTemplate] = [
     InstrumentTemplate(
         name="piano",
         display_name="Piano",
-        stem="other",
+        stem="piano",
         freq_band="mid",
     ),
     InstrumentTemplate(

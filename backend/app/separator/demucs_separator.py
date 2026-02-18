@@ -14,7 +14,7 @@ class DemucsSourceSeparator:
 
         cmd = [
             "python", "-m", "demucs",
-            "-n", "htdemucs",
+            "-n", "htdemucs_6s",
             "--segment", "7",
             "-o", output_dir,
             audio_path,
@@ -23,6 +23,6 @@ class DemucsSourceSeparator:
         subprocess.run(cmd, check=True, capture_output=True, text=True)
 
         audio_name = Path(audio_path).stem
-        stems_dir = str(Path(output_dir) / "htdemucs" / audio_name)
+        stems_dir = str(Path(output_dir) / "htdemucs_6s" / audio_name)
 
         return SeparationResult(stems_dir=stems_dir)

@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import type { StemName } from "../types/audio";
 
 export type { StemName };
-const STEM_NAMES: StemName[] = ["drums", "bass", "vocals", "other"];
+const STEM_NAMES: StemName[] = ["drums", "bass", "vocals", "guitar", "piano", "other"];
 
 export interface StemPlayerReturn {
   isPlaying: boolean;
@@ -164,11 +164,11 @@ export function useStemPlayer(): StemPlayerReturn {
       }
 
       try {
-        // Try loading all 4 stems
+        // Try loading all 6 stems (gracefully handle missing ones)
         const ctx = new AudioContext();
         ctxRef.current = ctx;
 
-        const results = await Promise.all(
+        const settled = await Promise.allSettled(
           STEM_NAMES.map(async (stem) => {
             const res = await fetch(`${baseUrl}/stems/${stem}`);
             if (!res.ok) throw new Error(`Failed to fetch ${stem}`);
@@ -177,6 +177,12 @@ export function useStemPlayer(): StemPlayerReturn {
             return [stem, audioBuf] as const;
           })
         );
+
+        const results = settled
+          .filter((r): r is PromiseFulfilledResult<readonly [StemName, AudioBuffer]> => r.status === "fulfilled")
+          .map((r) => r.value);
+
+        if (results.length === 0) throw new Error("No stems loaded");
 
         // Create gain nodes
         gainsRef.current.clear();

@@ -32,7 +32,7 @@ def get_audio(
 @router.get("/audio/{job_id}/stems/{stem_name}")
 def get_stem(
     job_id: str,
-    stem_name: Literal["drums", "bass", "vocals", "other"],
+    stem_name: Literal["drums", "bass", "vocals", "guitar", "piano", "other"],
     job_repo: InMemoryJobRepository = Depends(get_job_repository),
 ) -> FileResponse:
     job = job_repo.get(job_id)

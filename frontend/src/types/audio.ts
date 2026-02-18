@@ -1,1 +1,1 @@
-export type StemName = "drums" | "bass" | "vocals" | "other";
+export type StemName = "drums" | "bass" | "vocals" | "guitar" | "piano" | "other";
